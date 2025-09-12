@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  get "password_resets/new"
+  get "password_resets/create"
   resources :users, only: [:create, :show, :update, :destroy] do
     member do
       patch :accept_invitation
@@ -14,6 +16,7 @@ Rails.application.routes.draw do
     get :members, on: :member
 
     resources :goals, only: [:index, :create, :update, :destroy]
+    resources :transactions, only: [:index, :create]
 
     member do
       patch 'members/:member_id', to: 'organizations#update_member_role'
@@ -22,4 +25,9 @@ Rails.application.routes.draw do
   end
 
   resources :addresses, only: [:index, :show, :create, :update, :destroy]
+
+  resources :password_resets, only: [:create, :update]
+  get '/password_resets/:token', to: 'password_resets#edit', as: :password_reset_edit
+
+  post '/chat', to: 'chat#chat'
 end

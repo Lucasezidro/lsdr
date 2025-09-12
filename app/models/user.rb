@@ -8,6 +8,9 @@ class User < ApplicationRecord
 
   validates :invitation_status, inclusion: { in: %w[pending_invitation accepted] }
 
+  validates :password, length: { minimum: 8 }, if: -> { new_record? || password.present? }
+  validates :password_confirmation, presence: true, if: :password
+
   after_initialize :set_default_status, if: :new_record?
 
   after_initialize :set_default_role, if: :new_record?
@@ -29,13 +32,21 @@ class User < ApplicationRecord
     invitation_sent_at.present? && invitation_sent_at > 24.hours.ago
   end
 
+  def generate_password_reset_token!
+    self.password_reset_token = SecureRandom.urlsafe_base64
+    self.password_reset_sent_at = Time.zone.now
+    save!
+  end
+
   private
+
   def set_default_role
     self.role ||= "EMPLOYEE"
   end
 
   def set_default_status
     self.invitation_status ||= "pending_invitation"
+    self.invitation_status ||= "pending"
   end
 
   def one_admin_per_organization

@@ -5,6 +5,11 @@ gem "rails", "~> 8.0.2", ">= 8.0.2.1"
 gem 'bcrypt', '~> 3.1'
 gem 'jwt'
 gem 'dotenv-rails'
+gem 'ruby-openai'
+
+group :development, :test do
+  gem 'whenever', require: false
+end
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
 # Use the Puma web server [https://github.com/puma/puma]

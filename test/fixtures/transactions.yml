@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  description: MyString
+  amount: 9.99
+  transaction_type: MyString
+  date: 2025-09-12
+  organization: one
+  goal: one
+
+two:
+  description: MyString
+  amount: 9.99
+  transaction_type: MyString
+  date: 2025-09-12
+  organization: two
+  goal: two

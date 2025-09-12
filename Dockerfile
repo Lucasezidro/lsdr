@@ -9,6 +9,7 @@ RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
       build-essential git libpq-dev libyaml-dev \
       postgresql-client libvips libvips-dev && \
+      build-essential git libpq-dev libyaml-dev pkg-config cron && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Set working directory for the application
