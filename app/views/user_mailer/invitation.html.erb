@@ -1,0 +1,10 @@
+<h1>Olá, <%= @user.name %>!</h1>
+
+<p>Você foi convidado(a) a se juntar à organização <%= @organization.company_name %>.</p>
+
+<p>Clique no link abaixo para aceitar o convite e se tornar um membro:</p>
+
+<a href="<%= @invitation_url %>">Aceitar Convite</a>
+
+<p>Se o link não funcionar, copie e cole o seguinte link no seu navegador:</p>
+<p><%= @invitation_url %></p>

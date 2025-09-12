@@ -1,0 +1,42 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    container_name: rails_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: my_api_development
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: rails_app
+    command: bash -c "bundle install && bin/rails db:prepare && bin/rails server -b 0.0.0.0 -p 3000"
+    platform: linux/amd64
+    volumes:
+      - .:/rails
+    ports:
+      - "4000:3000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      RAILS_ENV: development
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: my_api_development
+
+  mailhog: 
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes: 
+  postgres_data: {} 
