@@ -102,6 +102,56 @@ class OrganizationsController < ApplicationController
     render json: members, status: :ok
   end
 
+  def update_member_role
+    organization = Organization.find_by(id: params[:id])
+
+    if !organization
+      render json: { error: "Organização não encontrada" }, status: :not_found
+      return
+    end
+
+    return unless authorize_admin_or_manager!(organization)
+
+    member_to_update = organization.users.find_by(id: params[:member_id])
+
+    if !member_to_update
+      render json: { error: "Membro não encontrado" }, status: :not_found
+      return
+    end
+
+    if member_to_update.update(role: params[:role])
+      render json: member_to_update, status: :ok
+    else
+      render json: { errors: member_to_update.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
+  def remove_member
+    organization = Organization.find_by(id: params[:id])
+
+    if !organization
+      render json: { error: "Organização não encontrada" }, status: :not_found
+      return
+    end
+
+    return unless authorize_admin_or_manager!(organization)
+
+    member_to_remove = organization.users.find_by(id: params[:member_id])
+
+    if !member_to_remove
+      render json: { error: "Membro não encontrado" }, status: :not_found
+      return
+    end
+
+    member_to_remove.organization_id = nil
+    
+    if member_to_remove.save
+      head :no_content
+    else
+      render json: { errors: member_to_remove.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def organization_params
