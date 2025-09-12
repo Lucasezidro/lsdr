@@ -14,6 +14,11 @@ Rails.application.routes.draw do
     get :members, on: :member
 
     resources :goals, only: [:index, :create, :update, :destroy]
+
+    member do
+      patch 'members/:member_id', to: 'organizations#update_member_role'
+      delete 'members/:member_id', to: 'organizations#remove_member'
+    end
   end
 
   resources :addresses, only: [:index, :show, :create, :update, :destroy]
