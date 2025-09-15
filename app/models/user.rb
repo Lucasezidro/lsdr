@@ -2,11 +2,13 @@ class User < ApplicationRecord
   has_secure_password validations: false
   belongs_to :organization, optional: true
 
+  has_one_attached :avatar
+
   validates :password, presence: true, on: :create
   validates :role, presence: true, inclusion: { in: %w[ADMIN MANAGER EMPLOYEE] }
   validate :one_admin_per_organization, if: -> { role == "ADMIN" && organization.present? }
 
-  validates :invitation_status, inclusion: { in: %w[pending_invitation accepted] }
+  validates :invitation_status, inclusion: { in: %w[pending_invitation accepted], allow_nil: true }
 
   validates :password, length: { minimum: 8 }, if: -> { new_record? || password.present? }
   validates :password_confirmation, presence: true, if: :password
@@ -16,7 +18,9 @@ class User < ApplicationRecord
   after_initialize :set_default_role, if: :new_record?
 
   def as_json(options = {})
-    super(options.merge({ only: [:id, :name, :email, :created_at, :updated_at, :role, :organization_id, :invitation_status] }))
+    super(options.merge({ 
+      only: [:id, :name, :email, :created_at, :updated_at, :role, :organization_id, :invitation_status]
+    }))
   end
 
   has_one :address
@@ -38,6 +42,14 @@ class User < ApplicationRecord
     save!
   end
 
+  def avatar_url
+    if avatar.attached?
+      # Rails.application.routes.url_helpers.rails_blob_url(avatar, only_path: true)
+    else
+      'URL_PADRAO_PARA_AVATAR.png'
+    end
+  end
+
   private
 
   def set_default_role
@@ -45,8 +57,7 @@ class User < ApplicationRecord
   end
 
   def set_default_status
-    self.invitation_status ||= "pending_invitation"
-    self.invitation_status ||= "pending"
+    self.role ||= "EMPLOYEE"
   end
 
   def one_admin_per_organization

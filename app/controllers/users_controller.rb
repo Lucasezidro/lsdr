@@ -89,7 +89,9 @@ class UsersController < ApplicationController
       :name,
       :email,
       :password,
+      :password_confirmation,
       :role,
+      :avatar,
       :organization_id,
       address_attributes: [:street, :number, :complement, :neighborhood, :city, :state, :zip_code]
     )

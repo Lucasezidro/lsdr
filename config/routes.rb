@@ -14,9 +14,10 @@ Rails.application.routes.draw do
   resources :organizations, only: [:index, :show, :create, :update, :destroy] do
     post :invite, on: :member
     get :members, on: :member
+    get :dashboard, on: :member
 
     resources :goals, only: [:index, :create, :update, :destroy]
-    resources :transactions, only: [:index, :create]
+    resources :transactions, only: [:index, :create, :destroy, :update]
 
     member do
       patch 'members/:member_id', to: 'organizations#update_member_role'

@@ -6,7 +6,7 @@ class CreateTransactions < ActiveRecord::Migration[8.0]
       t.string :transaction_type
       t.date :date
       t.references :organization, null: false, foreign_key: true
-      t.references :goal, null: false, foreign_key: true
+      t.references :goal, foreign_key: true
 
       t.timestamps
     end
