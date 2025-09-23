@@ -1,8 +1,12 @@
 class Goal < ApplicationRecord
   belongs_to :organization
-  has_many :transactions
+  belongs_to :user, optional: true
 
+  
+  has_many :transactions
+  
   validates :status, inclusion: { in: %w(in_progress finished cancelled paused) }
+  validates :goal_type, inclusion: { in: %w(company_goal employee_goal) }
 
   def progress_amount
     transactions.sum(:amount) || 0

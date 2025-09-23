@@ -24,7 +24,7 @@ class ApplicationController < ActionController::API
   private
 
   def authorize_admin_or_manager!(organization)
-    unless current_user.role.in?(['ADMIN', 'MANAGER']) && current_user.organization_id == organization.id
+    unless current_user.organization_id == organization.id
       render json: { error: "Você não tem permissão para gerenciar esta organização." }, status: :forbidden
       return false
     end

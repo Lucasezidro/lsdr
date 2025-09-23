@@ -57,33 +57,37 @@ class OrganizationsController < ApplicationController
   end
 
   def invite
-    organization = Organization.find_by(id: params[:id])
+    unless current_user.management_organization.present?
+      render json: { error: 'Você não tem permissão para convidar membros para esta organização.' }, status: :forbidden
+      return
+    end
+  
     user = User.find_by(email: params[:email])
 
-    if !organization || !user
-      render json: { error: "Organização ou usuário não encontrado" }, status: :not_found
+    
+    if user.nil?
+      render json: { error: 'Usuário não encontrado' }, status: :not_found
       return
     end
-
-    return unless authorize_admin_or_manager!(organization)
-
-    unless current_user.role == 'ADMIN' && current_user.organization == organization
-      render json: { error: "Apenas administradores podem convidar membros" }, status: :forbidden
+    
+    if user.organization.present?
+      render json: { error: 'Usuário já pertence a uma organização' }, status: :unprocessable_entity
       return
     end
-
-    user.organization = organization
-    user.role = params[:role] || 'EMPLOYEE'
-    user.invitation_status = 'pending_invitation'
-
-    if user.save
-      render json: { message: "#{user.email} foi convidado(a) com sucesso para a #{organization.company_name}." }, status: :ok
-    else
-      render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
-    end
-  rescue
-    render json: { error: "Não foi possível enviar o convite. Tente novamente mais tarde." }, status: :internal_server_error
+    
+    user.update(
+      invitation_status: 'pending_invitation',
+      organization_id: current_user.management_organization.id,
+      invited_organization_id: current_user.management_organization.id,
+      role: params[:role] || 'EMPLOYEE',
+      )
+    user.generate_invitation_token 
+    
+    # UserMailer.invitation(user, organization).deliver_now
+  
+    render json: { message: "Convite enviado com sucesso para #{user.email}" }, status: :ok
   end
+  
 
   def members
     organization = Organization.find_by(id: params[:id])
@@ -93,7 +97,7 @@ class OrganizationsController < ApplicationController
       return
     end
 
-    unless current_user.role == 'ADMIN' && current_user.organization_id == organization.id
+    unless current_user.organization_id == organization.id
       render json: { error: "Você não tem permissão para visualizar os membros desta organização" }, status: :forbidden
       return
     end
@@ -182,7 +186,7 @@ class OrganizationsController < ApplicationController
       total_income: organization.total_income,
       total_expenses: organization.total_expenses,
       is_balance_positive: is_balance_positive,
-      goals: goals_with_progress # <-- Adicione esta linha
+      goals: goals_with_progress 
     }, status: :ok
   end
 

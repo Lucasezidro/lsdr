@@ -1,9 +1,15 @@
 Rails.application.routes.draw do
   get "password_resets/new"
   get "password_resets/create"
-  resources :users, only: [:create, :show, :update, :destroy] do
+  resources :users do
+    patch :assign_manager, on: :member
+    get :my_employees, on: :collection
+    resource :address, only: [:create, :show, :update, :destroy]
+  end
+  resources :users, only: [:index, :create, :show, :update, :destroy] do
     member do
       patch :accept_invitation
+      patch :revoke_invitation
     end
   end
 
@@ -16,7 +22,7 @@ Rails.application.routes.draw do
     get :members, on: :member
     get :dashboard, on: :member
 
-    resources :goals, only: [:index, :create, :update, :destroy]
+    resources :goals, only: [:index, :show, :create, :update, :destroy]
     resources :transactions, only: [:index, :create, :destroy, :update]
 
     member do

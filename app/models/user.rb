@@ -1,39 +1,62 @@
+include Rails.application.routes.url_helpers
+
 class User < ApplicationRecord
-  has_secure_password validations: false
   belongs_to :organization, optional: true
+  has_one :address
+  accepts_nested_attributes_for :address, allow_destroy: true
 
-  has_one_attached :avatar
+  has_many :employees, class_name: 'User', foreign_key: 'manager_id'
+  belongs_to :manager, class_name: 'User', foreign_key: 'manager_id', optional: true
 
-  validates :password, presence: true, on: :create
+  has_secure_password
+  
+  validates :password, length: { minimum: 8 }, if: -> { new_record? || password.present? }
   validates :role, presence: true, inclusion: { in: %w[ADMIN MANAGER EMPLOYEE] }
+  validates :invitation_status, inclusion: { in: %w[pending_invitation accepted revoked], allow_nil: true }
+  
   validate :one_admin_per_organization, if: -> { role == "ADMIN" && organization.present? }
 
-  validates :invitation_status, inclusion: { in: %w[pending_invitation accepted], allow_nil: true }
+  MANAGER_ROLES = %w[ADMIN MANAGER].freeze
 
-  validates :password, length: { minimum: 8 }, if: -> { new_record? || password.present? }
-  validates :password_confirmation, presence: true, if: :password
+  def manage_organization?
+    MANAGER_ROLES.include?(role) && organization.present?
+  end
 
-  after_initialize :set_default_status, if: :new_record?
-
-  after_initialize :set_default_role, if: :new_record?
-
+  def management_organization
+    manage_organization? ? organization : nil
+  end
+  
   def as_json(options = {})
-    super(options.merge({ 
-      only: [:id, :name, :email, :created_at, :updated_at, :role, :organization_id, :invitation_status]
+    super(options.merge({
+      except: [:password_digest, :invitation_token, :invitation_sent_at, :password_reset_token, :password_reset_sent_at],
+      methods: [:avatar_url],
+      include: {
+        address: {
+          only: [:id, :street, :number, :complement, :neighborhood, :city, :state, :zip_code]
+        },
+        organization: {
+          only: [:id, :company_name]
+        }
+      }
     }))
   end
 
-  has_one :address
-  accepts_nested_attributes_for :address, allow_destroy: true
+  def avatar_url
+    if predefined_avatar_url.present?
+      predefined_avatar_url
+    else
+      'URL_PADRAO_PARA_AVATAR.png'
+    end
+  end
+
+  def invitation_token_valid?
+    invitation_sent_at.present? && invitation_sent_at > 24.hours.ago
+  end
 
   def generate_invitation_token
     self.invitation_token = SecureRandom.urlsafe_base64
     self.invitation_sent_at = Time.now.utc
     save!
-  end
-
-  def invitation_token_valid?
-    invitation_sent_at.present? && invitation_sent_at > 24.hours.ago
   end
 
   def generate_password_reset_token!
@@ -42,28 +65,18 @@ class User < ApplicationRecord
     save!
   end
 
-  def avatar_url
-    if avatar.attached?
-      # Rails.application.routes.url_helpers.rails_blob_url(avatar, only_path: true)
-    else
-      'URL_PADRAO_PARA_AVATAR.png'
-    end
-  end
-
   private
-
-  def set_default_role
-    self.role ||= "EMPLOYEE"
-  end
-
-  def set_default_status
-    self.role ||= "EMPLOYEE"
-  end
 
   def one_admin_per_organization
     admin_count = organization.users.where(role: "ADMIN").where.not(id: id).count
     if admin_count >= 1
       errors.add(:role, "There can be only one ADMIN per organization")
     end
+  end
+
+  after_initialize :set_default_role, if: :new_record?
+
+  def set_default_role
+    self.role ||= "EMPLOYEE"
   end
 end

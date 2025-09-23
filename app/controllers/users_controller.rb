@@ -1,6 +1,11 @@
 class UsersController < ApplicationController
-  before_action :authenticate_request!, only: [:show, :update, :destroy, :me, :accept_invitation, :invitation_status]
+  before_action :authenticate_request!, except: [:create]
 
+  def index 
+    users = User.all
+    render json: users
+  end
+  
   def create
     user = User.new(user_params)
 
@@ -50,19 +55,36 @@ class UsersController < ApplicationController
 
   def accept_invitation
     user = current_user
-
-    unless user.organization.present? && user.invitation_status == "pending_invitation"
+  
+    unless user.invitation_status == "pending_invitation"
       render json: { error: "Nenhum convite pendente para este usuário." }, status: :unprocessable_entity
       return
     end
-
+  
     if user.update(invitation_status: "accepted")
+      organization_name = user.organization.present? ? user.organization.company_name : 'uma organização'
+
       render json: { message: "Convite para a #{user.organization.company_name} aceito com sucesso." }, status: :ok
     else
       render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
     end
   rescue
     render json: { error: "Não foi possível aceitar o convite. Tente novamente mais tarde." }, status: :internal_server_error
+  end
+
+  def revoke_invitation
+    user = current_user
+  
+    unless user.invitation_status == "pending_invitation"
+      render json: { error: "Nenhum convite pendente para este usuário." }, status: :unprocessable_entity
+      return
+    end
+  
+    if user.update(invitation_status: "revoked", organization_id: nil)
+      render json: { message: "Convite recusado com sucesso!" }
+    end
+  rescue
+    render json: { error: "Não foi possível recusar o convite. Tente novamente mais tarde." }, status: :internal_server_error
   end
 
   def invitation_status
@@ -82,6 +104,38 @@ class UsersController < ApplicationController
     render json: current_user, status: :ok
   end
 
+  def assign_manager
+    manager = current_user
+    employee = User.find_by(id: params[:id])
+
+    if !employee
+      render json: { error: "Funcionário não encontrado" }, status: :not_found
+      return
+    end
+
+    if manager.role != 'MANAGER' && manager.role != 'ADMIN'
+      render json: { error: "Você não tem permissão para gerenciar este funcionário." }, status: :forbidden
+      return
+    end
+
+    employee.manager = manager
+    if employee.save
+      render json: employee, status: :ok
+    else
+      render json: { errors: employee.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
+  def my_employees
+    unless current_user.role.in?(['MANAGER', 'ADMIN'])
+      render json: { error: 'Você não tem permissão para gerenciar uma equipe.' }, status: :forbidden
+      return
+    end
+
+    employees = current_user.employees
+    render json: employees, status: :ok
+  end
+
   private
 
   def user_params
@@ -92,8 +146,21 @@ class UsersController < ApplicationController
       :password_confirmation,
       :role,
       :avatar,
+      :predefined_avatar_url,
       :organization_id,
-      address_attributes: [:street, :number, :complement, :neighborhood, :city, :state, :zip_code]
+      :occupation,
+      :salary,
+      :phone_number,
+      :manager_id,
+      address_attributes: [
+        :street,
+        :number,
+        :complement,
+        :neighborhood,
+        :city,
+        :state,
+        :zip_code
+      ]
     )
   end
 end
